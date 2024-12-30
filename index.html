@@ -6,6 +6,7 @@
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="./on_elections_by_ed.json"></script>
     <script src="./Electoral Districts - 2022 General Election.geojson"></script>
 
 	<style>
@@ -19,6 +20,18 @@
 			max-width: 100%;
 			max-height: 100%;
 		}
+        .info {
+            padding: 6px 8px;
+            font: 14px/16px Arial, Helvetica, sans-serif;
+            background: white;
+            background: rgba(255,255,255,0.8);
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            border-radius: 5px;
+        }
+        .info h4 {
+            margin: 0 0 5px;
+            color: #777;
+        }
 	</style>
 
 	
@@ -27,28 +40,109 @@
 
 
 
-<div id="map" style="width: 800px; height: 600px;"></div>
+<div id="map" style="width: 49%; height: 600px; display:inline-block;"></div>
+<div id="data" style="width: 49%; height: 600px; display:inline-block;"></div>
 <script>
 
-	const map = L.map('map').setView([50, -80], 5);
+    var geojsonLayer
 
-	const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+	const map = L.map('map').setView([50, -85], 5);
+
+	const tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
 		maxZoom: 19,
-		attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+	    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
 	}).addTo(map);
 
-    console.log("test")
-    console.log(districts)
-	
-    var geojsonLayer = L.geoJSON(districts, {
-        style: function(feature){
-            switch (feature.properties.Incumbent_Party) {
-                case "Progressive Conservative": return {color: "#002bf4"};
-                case "Liberal": return {color: "#f42b00"};
-                case "New Democratic": return {color: "#f4b200"};
-                case "Green": return {color: "#00ff45"};
+    var info = L.control();
+
+    const data_element = document.getElementById("data");
+
+    info.onAdd = function (map) {
+        this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
+        this.update();
+        return this._div;
+    };
+
+    // method that we will use to update the control based on feature properties passed
+    info.update = function (props) {
+        this._div.innerHTML = '<h4>Ontario Electoral District</h4>' +  (props ?
+            '<b>' + props.ED_English_Name + '</b><br />' + props.Incumbent_Name + '<br>' + props.Incumbent_Party + '<br>First elected ' + props.Incumbent_First_Elected
+            : 'Hover over a province');
+    };
+
+    info.addTo(map);
+
+    function getColor(feature) {
+        switch (feature.properties.Incumbent_Party) {
+            case "Progressive Conservative": return "#002bf4";
+            case "Liberal": return "#f42b00";
+            case "New Democratic": return "#f4b200";
+            case "Green": return "#00ff45";
+            case "Independent": return "#000000";
+        }
+    }
+
+    function style(feature) {
+        return {            
+            weight: 2,
+            opacity: 1,
+            fillColor: getColor(feature),
+            color: "white",
+            dashArray: '3',
+            fillOpacity: 0.7
+        };
+    }
+
+    function highlightFeature(e) {
+        var layer = e.target;
+
+        layer.setStyle({
+            weight: 5,
+            color: '#666',
+            dashArray: '',
+            fillOpacity: 0.7
+        });
+
+        info.update(layer.feature.properties);
+
+        layer.bringToFront();
+    }
+
+    function resetHighlight(e) {
+        geojsonLayer.resetStyle(e.target);
+        info.update();
+    }
+
+    function populateDataElement(input_data) {
+        var output = ""
+        console.log(input_data)
+        for (date in input_data) {
+            console.log(date)
+            output += "<br><b>"+date+"</b>:<br>"
+            for (i in input_data[date]) {
+                output += "<b>"+input_data[date][i]["party"]+"</b>: "+input_data[date][i]["votes_cast"]+"<br>"
             }
         }
+        return output
+    }
+
+    function clickFunction(e) {
+        map.fitBounds(e.target.getBounds());     
+        const data = districts_data[e.target.feature.properties.ED_English_Name]
+        data_element.innerHTML = populateDataElement(data)
+    }
+
+    function onEachFeature(feature, layer) {
+        layer.on({
+            mouseover: highlightFeature,
+            mouseout: resetHighlight,
+            click: clickFunction
+        });
+    }
+	
+    var geojsonLayer = L.geoJSON(districts, {
+        style: style,
+        onEachFeature: onEachFeature,        
     }).addTo(map);
 	
 </script>
