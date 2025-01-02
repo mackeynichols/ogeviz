@@ -46,7 +46,7 @@
         </div>
         <div class="col-8">
             <div id="data" style="height: 600px">
-                <b>Click a district to get its provincial voting history</b>
+                <b>Click a district</b>
                 <canvas id="chart"></canvas>
             </div>
         </div>
@@ -78,7 +78,7 @@
     info.update = function (props) {
         this._div.innerHTML = '<h4>Ontario Electoral District</h4>' +  (props ?
             '<b>' + props.ED_English_Name + '</b><br />' + props.Incumbent_Name + '<br>' + props.Incumbent_Party + '<br>First elected ' + props.Incumbent_First_Elected
-            : 'Hover over a province');
+            : 'Hover over a district');
     };
 
     info.addTo(map);
@@ -100,6 +100,7 @@
             case "NDP" : return "#FBBC04";
             case "GPO" : return "#34A853";
             case "IND" : return "#808080";
+            case "NONE" : return "#404040";
         }
     }
 
@@ -188,7 +189,7 @@
     }
 
     function clickFunction(e) {
-        map.fitBounds(e.target.getBounds());     
+        //map.fitBounds(e.target.getBounds());     
         const data = districts_data[e.target.feature.properties.ED_English_Name]
         populateDataElement(data)
     }
