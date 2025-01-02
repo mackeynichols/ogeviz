@@ -83,13 +83,23 @@
 
     info.addTo(map);
 
-    function getColor(feature) {
+    function getMapColor(feature) {
         switch (feature.properties.Incumbent_Party) {
-            case "Progressive Conservative": return "#002bf4";
-            case "Liberal": return "#f42b00";
-            case "New Democratic": return "#f4b200";
-            case "Green": return "#00ff45";
-            case "Independent": return "#000000";
+            case "Progressive Conservative": return "#4285F4";
+            case "Liberal": return "#EA4335";
+            case "New Democratic": return "#FBBC04";
+            case "Green": return "#34A853";
+            case "Independent": return "#808080";
+        }
+    }
+
+    function getChartColor(party){
+        switch(party){
+            case "LIB" : return "#EA4335";
+            case "PCP" : return "#4285F4";
+            case "NDP" : return "#FBBC04";
+            case "GPO" : return "#34A853";
+            case "IND" : return "#808080";
         }
     }
 
@@ -97,7 +107,7 @@
         return {            
             weight: 2,
             opacity: 1,
-            fillColor: getColor(feature),
+            fillColor: getMapColor(feature),
             color: "white",
             dashArray: '3',
             fillOpacity: 0.7
@@ -141,6 +151,7 @@
             
             datasets.push({
                 "label": party,
+                "backgroundColor": getChartColor(party),
                 "data": input_data[party],
             })
 
@@ -152,15 +163,18 @@
 
         var chart = new Chart(ctx, {
             type: 'bar',
-            data: {datasets},
+            data: {
+                "labels": [2003, 2007, 2011, 2014, 2018, 2022],
+                "datasets": datasets
+            },
             options: {
                 responsive: true,
                 scales: {
                     x: {
-                        type: 'linear'
+                        //type: 'linear'
                     },
                     y: {
-                        type: 'logarithmic'
+                        type: 'linear'
                     }
                 },
                 parsing: {
