@@ -47,7 +47,7 @@
         <div class="col-8">
             <div id="data" style="height: 600px">
                 <b>Click a district</b>
-                <canvas id="chart"></canvas>
+                
             </div>
         </div>
     </div>
@@ -56,6 +56,9 @@
 
     // init empty geojson later
     var geojsonLayer
+
+    var oge_years = [2003, 2007, 2011, 2014, 2018, 2022]
+    var oge_years_reverse = [2022, 2018, 2014, 2011, 2007, 2003]
 
 	const map = L.map('map').setView([50, -85], 5);
 
@@ -76,9 +79,12 @@
 
     // method that we will use to update the control based on feature properties passed
     info.update = function (props) {
-        this._div.innerHTML = '<h4>Ontario Electoral District</h4>' +  (props ?
-            '<b>' + props.ED_English_Name + '</b><br />' + props.Incumbent_Name + '<br>' + props.Incumbent_Party + '<br>First elected ' + props.Incumbent_First_Elected
+        this._div.innerHTML = '<h4>Ontario General Elections</h4>' +  (props ?
+            '<b>' + props.ED_English_Name + '</b><br />' + props.Incumbent_Name + ': ' + props.Incumbent_Party + '<br>First elected ' + props.Incumbent_First_Elected + '<br> <canvas id="chart"></canvas>' 
             : 'Hover over a district');
+            
+        const data = props ? districts_data[props.ED_English_Name] : null
+        if (props){populateChart(data)}
     };
 
     info.addTo(map);
@@ -93,6 +99,13 @@
         }
     }
 
+    function toTitleCase(str) {
+        return str.replace(
+            /\w\S*/g,
+            text => text.charAt(0).toUpperCase() + text.substring(1).toLowerCase()
+        );
+        }
+
     function getChartColor(party){
         switch(party){
             case "LIB" : return "#EA4335";
@@ -100,7 +113,18 @@
             case "NDP" : return "#FBBC04";
             case "GPO" : return "#34A853";
             case "IND" : return "#808080";
-            case "NONE" : return "#404040";
+            //case "NONE" : return "#404040";
+        }
+    }
+
+    function getBootstrapColor(party){
+        switch(party){
+            case "LIB" : return "danger";
+            case "PCP" : return "primary";
+            case "NDP" : return "warning";
+            case "GPO" : return "success";
+            case "IND" : return "secondary";
+            //case "NONE" : return "#404040";
         }
     }
 
@@ -135,7 +159,7 @@
         info.update();
     }
 
-    function populateDataElement(input_data) {
+    function populateChart(input_data) {
         
         let chartStatus = Chart.getChart("chart"); // <canvas> id
             if (chartStatus != undefined) {
@@ -144,11 +168,12 @@
             
         datasets = []
 
-        console.log(input_data)
         parties = Object.keys(input_data).sort()
         for (j in parties) {
             party = parties[j]
-            console.log(party)
+            if(party == "NONE"){
+                continue
+            }
             
             datasets.push({
                 "label": party,
@@ -158,14 +183,12 @@
 
         }
 
-        console.log(datasets)
-
         const ctx = document.getElementById('chart');
 
         var chart = new Chart(ctx, {
             type: 'bar',
             data: {
-                "labels": [2003, 2007, 2011, 2014, 2018, 2022],
+                "labels": oge_years,
                 "datasets": datasets
             },
             options: {
@@ -184,14 +207,69 @@
                 }
             }
         });
+    }
 
-        //return output
+    function populateDataElement(data, e) {
+        no_turnout = null
+        parties = Object.keys(data)
+        element = document.getElementById('data')
+        var winner 
+        element.innerHTML = "<h4>"+e.target.feature.properties.ED_English_Name+"</h4>"
+        this_div = ""
+
+        // for each year
+        for (i in oge_years_reverse){
+            year = oge_years_reverse[i]
+           
+            // generic, non-party-related data
+            for (k in data["NONE"]){
+                if(data["NONE"][k]["year"] == year){
+                    no_turnout = data["NONE"][k]["voter_turnout"]/data["NONE"][k]["registered_voters"]
+                    this_div += "<div class='row'>"
+                    this_div += "<h5>"+year+"</h5>"
+                    this_div += "<div class='col-2'><div class='card text-bg-dark'><div class='card-body'><h6 class='card-title'>Didn't vote:</h6><div class='card-text'>" + String(no_turnout*100).substr(0,2) + '%</div></div></div></div>'
+                }
+            }                                        
+            
+            // for each party
+            for (j in parties) {
+                party = parties[j]
+                for (k in data[party]){
+                    if(data[party][k]["year"] == year){
+                        candidate = data[party][k]["candidate"]
+                        votes_cast = data[party][k]["votes_cast"]
+                        newval = true
+                        if (data[party][k]["plurality"] > 0){
+                            winner = {"party":party, "year": year}
+                        }
+                    }
+                }
+                if (newval && candidate){
+                    this_div += "<div class='col-2'><div class='card text-bg-"+getBootstrapColor(party)+"'><div class='card-body'>"
+                    if(winner){
+                        if(winner["party"] == party && winner["year"] == year){
+                            this_div += '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trophy-fill" viewBox="0 0 16 16"><path d="M2.5.5A.5.5 0 0 1 3 0h10a.5.5 0 0 1 .5.5q0 .807-.034 1.536a3 3 0 1 1-1.133 5.89c-.79 1.865-1.878 2.777-2.833 3.011v2.173l1.425.356c.194.048.377.135.537.255L13.3 15.1a.5.5 0 0 1-.3.9H3a.5.5 0 0 1-.3-.9l1.838-1.379c.16-.12.343-.207.537-.255L6.5 13.11v-2.173c-.955-.234-2.043-1.146-2.833-3.012a3 3 0 1 1-1.132-5.89A33 33 0 0 1 2.5.5m.099 2.54a2 2 0 0 0 .72 3.935c-.333-1.05-.588-2.346-.72-3.935m10.083 3.935a2 2 0 0 0 .72-3.935c-.133 1.59-.388 2.885-.72 3.935"/></svg> '
+                        }
+                    }
+
+                    this_div += "<h7 class='card-title'>" + toTitleCase(candidate) + "</h7><div class='card-text'>" + votes_cast + "</div></div></div></div>"
+                    newval = false
+                }
+                
+            }
+
+        }
+        this_div += "</div>"
+        console.log(this_div)
+        element.innerHTML += this_div
+        
     }
 
     function clickFunction(e) {
         //map.fitBounds(e.target.getBounds());     
         const data = districts_data[e.target.feature.properties.ED_English_Name]
-        populateDataElement(data)
+        populateDataElement(data, e)
+
     }
 
     function onEachFeature(feature, layer) {
