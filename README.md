@@ -1,6 +1,6 @@
 # ogeviz
 
-A simple interactive map that shows results for Ontario General Election (OGE) results for applicable races between 2011 to 2022, highlighting incumbents' amount of time in power and the % of potential voters who didn't vote.
+A simple interactive map that shows results for Ontario General Election (OGE) results for applicable races between 2011 to 2022, highlighting incumbents' amount of time in power and the % of potential voters who didn't vote. The map is hosted on GitHub pages at https://mackeynichols.github.io/ogeviz/
 
 <img width="757" height="389" alt="image" src="https://github.com/user-attachments/assets/635f41a4-0814-4553-a2fe-eb8081021ebf" />
 
